@@ -154,16 +154,17 @@ const setGateBusy = (busy) => {
   gateForm.querySelector('button[type=submit]').disabled = busy;
 };
 
-// Mailchimp double opt-in. Fill these three in from the audience's embedded
-// form code and every unlock also gets a "confirm your subscription" email —
-// only people who click it land on the list. Left blank, the gate still works
-// and leads still reach the inbox, there's just no confirmed-subscriber list.
-//
-//   <form action="https://SOMETHING.us21.list-manage.com/subscribe/post?u=abc123&amp;id=def456">
-//                                ^^^^ dc            ^^^^^^ u        ^^^^^^ id
-const MAILCHIMP = { dc: '', u: '', id: '' };
+// Mailchimp. Every unlock is also submitted here, so the audience builds a real
+// subscriber list. With double opt-in switched on for the audience, Mailchimp
+// emails the visitor a confirmation link and only adds them once they click it.
+// Values come from Audience → Forms → Other forms → Embedded forms.
+const MAILCHIMP = {
+  host: 'github.us11.list-manage.com',
+  u: '431ed4d99889b35117f103a2c',
+  id: 'f4e2af257d'
+};
 
-const mailchimpReady = () => !!(MAILCHIMP.dc && MAILCHIMP.u && MAILCHIMP.id);
+const mailchimpReady = () => !!(MAILCHIMP.host && MAILCHIMP.u && MAILCHIMP.id);
 
 // Mailchimp has no CORS headers, so the classic static-site route is JSONP.
 function mailchimpSubscribe(email) {
@@ -182,7 +183,7 @@ function mailchimpSubscribe(email) {
 
     window[cb] = (data) => done(data || {});
     script.onerror = () => done({ error: 'network' });
-    script.src = `https://${MAILCHIMP.dc}.list-manage.com/subscribe/post-json`
+    script.src = `https://${MAILCHIMP.host}/subscribe/post-json`
       + `?u=${encodeURIComponent(MAILCHIMP.u)}&id=${encodeURIComponent(MAILCHIMP.id)}`
       + `&EMAIL=${encodeURIComponent(email)}&c=${cb}`;
     document.body.appendChild(script);
