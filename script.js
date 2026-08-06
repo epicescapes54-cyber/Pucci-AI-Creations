@@ -154,6 +154,41 @@ const setGateBusy = (busy) => {
   gateForm.querySelector('button[type=submit]').disabled = busy;
 };
 
+// Mailchimp double opt-in. Fill these three in from the audience's embedded
+// form code and every unlock also gets a "confirm your subscription" email —
+// only people who click it land on the list. Left blank, the gate still works
+// and leads still reach the inbox, there's just no confirmed-subscriber list.
+//
+//   <form action="https://SOMETHING.us21.list-manage.com/subscribe/post?u=abc123&amp;id=def456">
+//                                ^^^^ dc            ^^^^^^ u        ^^^^^^ id
+const MAILCHIMP = { dc: '', u: '', id: '' };
+
+const mailchimpReady = () => !!(MAILCHIMP.dc && MAILCHIMP.u && MAILCHIMP.id);
+
+// Mailchimp has no CORS headers, so the classic static-site route is JSONP.
+function mailchimpSubscribe(email) {
+  return new Promise((resolve) => {
+    if (!mailchimpReady()) return resolve({ skipped: true });
+
+    const cb = 'mc_cb_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    const done = (result) => {
+      delete window[cb];
+      script.remove();
+      clearTimeout(timer);
+      resolve(result);
+    };
+    const timer = setTimeout(() => done({ error: 'timeout' }), 8000);
+
+    window[cb] = (data) => done(data || {});
+    script.onerror = () => done({ error: 'network' });
+    script.src = `https://${MAILCHIMP.dc}.list-manage.com/subscribe/post-json`
+      + `?u=${encodeURIComponent(MAILCHIMP.u)}&id=${encodeURIComponent(MAILCHIMP.id)}`
+      + `&EMAIL=${encodeURIComponent(email)}&c=${cb}`;
+    document.body.appendChild(script);
+  });
+}
+
 // Ask public DNS whether the domain can actually receive mail. A made-up
 // domain has no MX (and no A) record, so it fails here.
 async function domainAcceptsMail(domain) {
@@ -206,24 +241,29 @@ gateForm.addEventListener('submit', async (e) => {
   // Only unlock once the lead has actually been delivered.
   setGateNote('Sending…');
   const prompt = pending ? pending.querySelector('.p-label').textContent : '—';
-  let delivered = false;
-  try {
-    const res = await fetch(LEAD_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        email,
-        _subject: `New prompt-library lead — ${email}`,
-        Prompt: prompt,
-        Source: 'Content Engine prompt library',
-        When: new Date().toLocaleString()
-      })
-    });
-    const body = await res.json().catch(() => ({}));
-    delivered = res.ok && String(body.success) === 'true';
-  } catch {
-    delivered = false;
-  }
+
+  const [mc, delivered] = await Promise.all([
+    mailchimpSubscribe(email),
+    (async () => {
+      try {
+        const res = await fetch(LEAD_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            email,
+            _subject: `New prompt-library lead — ${email}`,
+            Prompt: prompt,
+            Source: 'Content Engine prompt library',
+            When: new Date().toLocaleString()
+          })
+        });
+        const body = await res.json().catch(() => ({}));
+        return res.ok && String(body.success) === 'true';
+      } catch {
+        return false;
+      }
+    })()
+  ]);
 
   setGateBusy(false);
 
@@ -235,6 +275,14 @@ gateForm.addEventListener('submit', async (e) => {
   setLocked();
   gate.close();
   if (pending) { copyPrompt(pending); pending = null; }
+
+  // Mailchimp rejects addresses that bounced or unsubscribed before; tell them
+  // rather than silently dropping the signup. They keep the prompt either way.
+  if (mc && mc.result === 'error' && !/already subscribed/i.test(mc.msg || '')) {
+    promptNote.textContent = 'Prompt copied — but we couldn\'t add you to the list.';
+  } else if (mailchimpReady() && mc && mc.result === 'success') {
+    promptNote.textContent = 'Prompt copied. Check your inbox to confirm your subscription.';
+  }
 });
 
 // Contact form
