@@ -135,6 +135,13 @@ em{ font-style:italic; color:var(--pink); }
   background:radial-gradient(circle,rgba(212,120,154,.28) 0%,rgba(201,168,76,.14) 42%,transparent 68%);
   pointer-events:none; z-index:0;
 }
+/* Oversized logo sitting behind the hero copy as brand texture. The lockup is
+   gold-on-dark artwork, so over cream it reads only as a faint watermark. */
+.hero-watermark{
+  position:absolute; left:-7%; top:44%; transform:translateY(-50%);
+  width:min(600px,50vw); height:auto; opacity:.13; pointer-events:none;
+  z-index:0; mix-blend-mode:multiply;
+}
 .hero-inner{
   position:relative; z-index:1;
   display:grid; grid-template-columns:1.05fr .95fr; gap:60px; align-items:center;
@@ -460,6 +467,8 @@ em{ font-style:italic; color:var(--pink); }
 }
 .gate-x:hover{ color:var(--black); }
 .gate .form-note{ margin-top:12px; }
+.gate-inner.busy button[type=submit]{ opacity:.6; cursor:progress; }
+.gate-inner button[type=submit]:disabled{ pointer-events:none; }
 
 /* Tile link + play badge */
 .tile-link{ display:block; text-decoration:none; color:inherit; }
@@ -550,8 +559,16 @@ em{ font-style:italic; color:var(--pink); }
 .form-note.err{ color:#C0392B; }
 
 /* ---------- Footer ---------- */
-.footer{ background:var(--black); color:var(--offwhite); padding:44px 0; }
-.footer-inner{ display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+.footer{ background:var(--black); color:var(--offwhite); padding:64px 0 44px; }
+.footer-inner{
+  display:flex; flex-direction:column; align-items:center; gap:26px; text-align:center;
+}
+.footer-logo{ display:block; line-height:0; }
+.footer-logo img{
+  width:clamp(190px,22vw,250px); height:auto;
+  transition:transform .4s ease, filter .4s ease;
+}
+.footer-logo:hover img{ transform:scale(1.03); filter:brightness(1.08); }
 .footer .brand-text{ color:var(--offwhite); }
 .footer .copy{ font-size:.82rem; color:rgba(255,245,248,.55); }
 .footer-links{ display:flex; gap:26px; }

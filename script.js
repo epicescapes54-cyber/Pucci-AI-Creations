@@ -127,23 +127,88 @@ setLocked();
 document.getElementById('gateClose').addEventListener('click', () => gate.close());
 gate.addEventListener('click', (e) => { if (e.target === gate) gate.close(); });
 
-gateForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const email = gateEmail.value.trim();
+// Throwaway and placeholder domains. These are the addresses people reach for
+// when they want the prompt without handing over a real inbox.
+const BAD_DOMAINS = new Set([
+  'example.com', 'example.org', 'example.net', 'test.com', 'test.test',
+  'email.com', 'domain.com', 'fake.com', 'foo.com', 'bar.com', 'asdf.com',
+  'mailinator.com', 'guerrillamail.com', 'guerrillamail.info', 'sharklasers.com',
+  '10minutemail.com', '10minutemail.net', 'tempmail.com', 'temp-mail.org',
+  'throwawaymail.com', 'yopmail.com', 'yopmail.fr', 'trashmail.com',
+  'getnada.com', 'dispostable.com', 'maildrop.cc', 'fakeinbox.com',
+  'mailnesia.com', 'mytemp.email', 'moakt.com', 'emailondeck.com',
+  'spam4.me', 'grr.la', 'inboxbear.com', 'tempr.email', 'discard.email',
+  'mailinator.net', 'harakirimail.com', 'anonbox.net', 'burnermail.io'
+]);
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+// Local parts that are obviously not a person.
+const BAD_LOCAL = /^(test|tester|testing|fake|asdf|qwerty|abc|aaa|xxx|noone|nobody|none|na|no|nothing|spam|junk|donotreply|no-?reply)\d*$/i;
+
+const setGateNote = (msg, kind) => {
+  gateNote.textContent = msg;
+  gateNote.className = 'form-note' + (kind ? ' ' + kind : '');
+};
+
+const setGateBusy = (busy) => {
+  gateForm.classList.toggle('busy', busy);
+  gateForm.querySelector('button[type=submit]').disabled = busy;
+};
+
+// Ask public DNS whether the domain can actually receive mail. A made-up
+// domain has no MX (and no A) record, so it fails here.
+async function domainAcceptsMail(domain) {
+  const ask = async (type) => {
+    const r = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=${type}`,
+      { headers: { Accept: 'application/dns-json' } });
+    if (!r.ok) throw new Error('dns');
+    return r.json();
+  };
+  const mx = await ask('MX');
+  if (mx.Status === 3) return false;            // NXDOMAIN — no such domain
+  if (mx.Answer && mx.Answer.some(a => a.type === 15)) return true;
+  const a = await ask('A');                      // some hosts take mail on the A record
+  return !!(a.Answer && a.Answer.length);
+}
+
+gateForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = gateEmail.value.trim().toLowerCase();
+  const fail = (msg) => {
     gateEmail.classList.add('invalid');
-    gateNote.textContent = 'That email doesn\'t look right — mind checking it?';
-    gateNote.className = 'form-note err';
-    return;
+    setGateNote(msg, 'err');
+  };
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    return fail('That email doesn\'t look right — mind checking it?');
+  }
+
+  const [local, domain] = email.split('@');
+  if (BAD_DOMAINS.has(domain)) {
+    return fail('That looks like a temporary address. Please use the inbox you actually read.');
+  }
+  if (BAD_LOCAL.test(local)) {
+    return fail('Please use your real email — the prompts and any updates get sent there.');
   }
 
   gateEmail.classList.remove('invalid');
-  try { localStorage.setItem(STORE_KEY, email); } catch {}
+  setGateBusy(true);
+  setGateNote('Checking that address…');
 
-  if (LEAD_ENDPOINT) {
-    const prompt = pending ? pending.querySelector('.p-label').textContent : '—';
-    fetch(LEAD_ENDPOINT, {
+  try {
+    if (!(await domainAcceptsMail(domain))) {
+      setGateBusy(false);
+      return fail(`We can't find a mail server at "${domain}". Check the spelling?`);
+    }
+  } catch {
+    // DNS unreachable — don't punish a real visitor for our lookup failing.
+  }
+
+  // Only unlock once the lead has actually been delivered.
+  setGateNote('Sending…');
+  const prompt = pending ? pending.querySelector('.p-label').textContent : '—';
+  let delivered = false;
+  try {
+    const res = await fetch(LEAD_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
@@ -153,9 +218,20 @@ gateForm.addEventListener('submit', (e) => {
         Source: 'Content Engine prompt library',
         When: new Date().toLocaleString()
       })
-    }).catch(() => {});
+    });
+    const body = await res.json().catch(() => ({}));
+    delivered = res.ok && String(body.success) === 'true';
+  } catch {
+    delivered = false;
   }
 
+  setGateBusy(false);
+
+  if (!delivered) {
+    return fail('Something went wrong sending that. Try again in a moment?');
+  }
+
+  try { localStorage.setItem(STORE_KEY, email); } catch {}
   setLocked();
   gate.close();
   if (pending) { copyPrompt(pending); pending = null; }
