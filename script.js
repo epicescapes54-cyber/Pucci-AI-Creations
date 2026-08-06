@@ -290,9 +290,14 @@ gateForm.addEventListener('submit', async (e) => {
 const form = document.getElementById('contactForm');
 const note = document.getElementById('formNote');
 
-form.addEventListener('submit', (e) => {
+const setNote = (msg, kind) => {
+  note.textContent = msg;
+  note.className = 'form-note' + (kind ? ' ' + kind : '');
+};
+
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  note.className = 'form-note';
+  setNote('');
 
   const name = form.name;
   const email = form.email;
@@ -305,23 +310,71 @@ form.addEventListener('submit', (e) => {
     if (bad) ok = false;
   });
 
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
-  if (!emailOk) { email.classList.add('invalid'); ok = false; }
-
-  if (!ok) {
-    note.textContent = 'Please fill in your name, a valid email, and a message.';
-    note.classList.add('err');
-    return;
+  const address = email.value.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(address)) {
+    email.classList.add('invalid');
+    ok = false;
   }
 
-  // No backend yet — hand off to the user's mail client.
-  const subject = encodeURIComponent(`New project inquiry — ${form.service.value}`);
-  const body = encodeURIComponent(
-    `Name: ${name.value.trim()}\nEmail: ${email.value.trim()}\nService: ${form.service.value}\n\n${message.value.trim()}`
-  );
-  window.location.href = `mailto:epicescapes54@gmail.com?subject=${subject}&body=${body}`;
+  if (!ok) {
+    return setNote('Please fill in your name, a valid email, and a message.', 'err');
+  }
 
-  note.textContent = 'Opening your email app — hit send and I\'ll get right back to you.';
-  note.classList.add('ok');
+  // Same standard as the prompt gate — a reply is useless without a real inbox.
+  const [local, domain] = address.split('@');
+  if (BAD_DOMAINS.has(domain) || BAD_LOCAL.test(local)) {
+    email.classList.add('invalid');
+    return setNote('Please use a real email address so I can reply to you.', 'err');
+  }
+
+  const submit = form.querySelector('button[type=submit]');
+  submit.disabled = true;
+  setNote('Checking your email…');
+
+  try {
+    if (!(await domainAcceptsMail(domain))) {
+      submit.disabled = false;
+      email.classList.add('invalid');
+      return setNote(`We can't find a mail server at "${domain}". Check the spelling?`, 'err');
+    }
+  } catch {
+    // DNS lookup failed on our side — let the message through rather than
+    // turning away a real enquiry.
+  }
+
+  email.classList.remove('invalid');
+  setNote('Sending…');
+
+  let sent = false;
+  try {
+    const res = await fetch(LEAD_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        name: name.value.trim(),
+        email: address,
+        _subject: `New project inquiry — ${form.service.value}`,
+        _replyto: address,
+        Service: form.service.value,
+        Message: message.value.trim(),
+        When: new Date().toLocaleString()
+      })
+    });
+    const body = await res.json().catch(() => ({}));
+    sent = res.ok && String(body.success) === 'true';
+  } catch {
+    sent = false;
+  }
+
+  submit.disabled = false;
+
+  if (!sent) {
+    return setNote(
+      'Something went wrong sending that. Try again, or email epicescapes54@gmail.com directly.',
+      'err'
+    );
+  }
+
   form.reset();
+  setNote('Thank you — your message is on its way. I\'ll get right back to you.', 'ok');
 });
