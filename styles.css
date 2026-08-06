@@ -87,12 +87,19 @@ em{ font-style:italic; color:var(--pink); }
 .nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:20px; }
 
 .brand{ display:flex; align-items:center; gap:11px; text-decoration:none; }
+/* Round black badge framing the monogram out of the full logo lockup.
+   The source PNG is a stacked logo on solid black, so we scale it up and
+   nudge it down to centre the emblem rather than the whole artwork. */
 .brand-mark{
-  width:38px; height:38px; flex:none; border-radius:11px;
-  background:linear-gradient(135deg,var(--pink),var(--gold));
-  color:var(--white); font-family:var(--serif); font-weight:700; font-size:1.25rem;
-  display:grid; place-items:center; box-shadow:0 6px 16px -8px rgba(212,120,154,.9);
+  width:40px; height:40px; flex:none; border-radius:50%;
+  background:#000; overflow:hidden; position:relative;
+  box-shadow:0 6px 16px -8px rgba(26,26,26,.7);
 }
+.brand-mark img{
+  position:absolute; width:185%; height:auto; left:50%; top:50%;
+  transform:translate(-50%,-50%) translateY(14.5%);
+}
+.footer .brand-mark{ box-shadow:none; outline:1px solid rgba(255,245,248,.14); }
 .brand-text{
   font-family:var(--serif); font-size:1.15rem; font-weight:600;
   color:var(--black); letter-spacing:.01em; white-space:nowrap;
