@@ -370,7 +370,7 @@ form.addEventListener('submit', async (e) => {
 
   if (!sent) {
     return setNote(
-      'Something went wrong sending that. Try again, or email epicescapes54@gmail.com directly.',
+      'Something went wrong sending that. Please try again in a moment.',
       'err'
     );
   }
