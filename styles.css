@@ -21,7 +21,7 @@
   --white:     #FFFFFF;
   --ink:       #3A3238;
   --muted:     #7A6D74;
-  --line:      rgba(140,106,56,.34);
+  --line:      #8C6A38;
 
   --serif: 'Cormorant Garamond', Georgia, serif;
   --sans:  'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -188,7 +188,7 @@ em{ font-style:italic; color:var(--pink); }
   margin-top:22px; text-align:center; display:flex; flex-direction:column; gap:4px;
 }
 .photo-caption strong{
-  font-family:var(--serif); font-size:1.5rem; font-weight:600; color:var(--black);
+  font-family:var(--serif); font-size:1.5rem; font-weight:600; color:var(--pink);
   letter-spacing:.01em; line-height:1.1;
 }
 .photo-caption span{
