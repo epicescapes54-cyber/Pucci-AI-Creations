@@ -42,6 +42,72 @@ document.querySelectorAll('.tile-video .cover').forEach(img => {
   if (img.complete && img.naturalWidth === 0) markMissing();
 });
 
+// The Reel — one player that runs the films back to back.
+// YouTube advances automatically when you hand it the rest of the list, so
+// picking a title just reloads the player starting from that point.
+const REEL = [
+  { id: 'O0ETq_UWxhU', title: 'Put Me In Flower Child', note: 'Generative product film' },
+  { id: 'kNAN7vrYlz4', title: 'Boujee and Balanced',    note: 'Launch spot' }
+];
+
+const reelFrame = document.getElementById('reelFrame');
+const reelList = document.getElementById('reelList');
+
+if (reelFrame && reelList && REEL.length) {
+  let reelPlayer = null;
+  let current = 0;
+
+  const markCurrent = () => {
+    reelList.querySelectorAll('li').forEach((li, n) => li.classList.toggle('on', n === current));
+  };
+
+  const goTo = (i, autoplay) => {
+    current = i;
+    markCurrent();
+    if (!reelPlayer) return;
+    if (autoplay) reelPlayer.loadVideoById(REEL[i].id);
+    else reelPlayer.cueVideoById(REEL[i].id);
+  };
+
+  REEL.forEach((v, i) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.innerHTML = `<span class="reel-n">${String(i + 1).padStart(2, '0')}</span>`;
+    const t = document.createElement('span');
+    t.className = 'reel-t';
+    t.textContent = v.title;
+    const note = document.createElement('span');
+    note.className = 'reel-note';
+    note.textContent = v.note;
+    btn.append(t, note);
+    btn.addEventListener('click', () => goTo(i, true));
+    li.appendChild(btn);
+    reelList.appendChild(li);
+  });
+  markCurrent();
+
+  // The playlist= parameter loads films out of order, so drive the player
+  // directly and advance on ENDED instead.
+  window.onYouTubeIframeAPIReady = () => {
+    reelPlayer = new YT.Player('reelFrame', {
+      host: 'https://www.youtube-nocookie.com',
+      videoId: REEL[0].id,
+      playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+      events: {
+        onStateChange: (e) => {
+          if (e.data !== YT.PlayerState.ENDED) return;
+          if (current < REEL.length - 1) goTo(current + 1, true);
+        }
+      }
+    });
+  };
+
+  const api = document.createElement('script');
+  api.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(api);
+}
+
 // Prompt library — copy is gated behind an email, once per visitor
 const promptNote = document.getElementById('promptNote');
 const gate = document.getElementById('promptGate');

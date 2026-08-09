@@ -66,11 +66,15 @@
     <div class="hero-photo reveal">
       <div class="photo-frame">
         <div class="photo-ring"></div>
-        <img src="assets/pucci-portrait.jpeg" alt="Pucci, founder of Pucci AI Creations">
+        <img src="assets/pucci-portrait.jpeg" alt="Pucci Sims, founder of Pucci AI Creations">
+        <div class="photo-badge">
+          <span class="dot"></span> Available for new projects
+        </div>
       </div>
-      <div class="photo-badge">
-        <span class="dot"></span> Available for new projects
-      </div>
+      <figcaption class="photo-caption">
+        <strong>Pucci Sims</strong>
+        <span>AI Evangelist</span>
+      </figcaption>
     </div>
   </div>
   <div class="marquee">
@@ -313,47 +317,26 @@
 
     <!-- ---- Grid ---- -->
     <div class="work-grid">
-      <a class="tile tile-link reveal" href="https://youtu.be/O0ETq_UWxhU" target="_blank" rel="noopener">
-        <div class="tile-video art-2">
-          <img class="cover" src="assets/statement-pieces-cover.jpg" alt="Still from “Put Me In Flower Child by P. Sims”" loading="lazy">
-          <span class="cover-play"><span class="pbtn">▶</span></span>
-        </div>
-        <div class="tile-body">
-          <span class="tag">Imagery · YouTube</span>
-          <h3>Statement Pieces</h3>
-          <p>Generative product photography for handmade jewelry — one consistent look
-             across an entire seasonal drop.</p>
-          <span class="tile-cta">Put Me In Flower Child ↗</span>
-        </div>
-      </a>
-
-      <a class="tile tile-link reveal" href="https://youtube.com/@psimshairboutique" target="_blank" rel="noopener">
-        <div class="tile-art art-3">
-          <span class="play">▶</span>
-        </div>
-        <div class="tile-body">
-          <span class="tag">Motion · YouTube</span>
-          <h3>Reel Series</h3>
-          <p>Short-form video and styling content for P. Sims Hair Boutique — scripted,
-             edited and published on a repeatable AI pipeline.</p>
-          <span class="tile-cta">@psimshairboutique ↗</span>
-        </div>
-      </a>
-
-      <a class="tile tile-link reveal" href="https://youtu.be/kNAN7vrYlz4" target="_blank" rel="noopener">
-        <div class="tile-video art-5">
-          <img class="cover" src="assets/studio-landing-cover.jpg" alt="Still from “Boujee and Balanced”" loading="lazy">
-          <span class="cover-play"><span class="pbtn">▶</span></span>
-        </div>
-        <div class="tile-body">
-          <span class="tag">Web · YouTube</span>
-          <h3>Studio Landing Pages</h3>
-          <p>Fast, conversion-focused pages for creators launching digital products —
-             copy, visuals and build in one pass.</p>
-          <span class="tile-cta">Boujee and Balanced ↗</span>
-        </div>
-      </a>
     </div>
+
+    <!-- ---- The Reel: plays every film back to back ---- -->
+    <article class="feature feature-wide reveal" id="showreel">
+      <div class="feature-copy">
+        <span class="tag">Motion · YouTube</span>
+        <h3>The Reel</h3>
+        <p>
+          Every film in one run — it rolls straight from one into the next. Pick any
+          title below to jump in.
+        </p>
+
+        <div class="reel">
+          <div class="reel-stage">
+            <div id="reelFrame"></div>
+          </div>
+          <ol class="reel-list" id="reelList"></ol>
+        </div>
+      </div>
+    </article>
 
     <!-- ---- Featured: Content Engine ---- -->
     <article class="feature feature-wide reveal" id="content-engine">
